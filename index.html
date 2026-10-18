@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Combien vous rapporte votre livre ? Simulateur pour auteurs autoédités</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F3EFE9; --sheet:#FBF9F6; --ink:#2B2622; --taupe:#7C7065; --line:#DDD5CA;
+  --brass:#9C7A34; --gain:#4F6B4A; --loss:#9A4A3A;
+  --c-tva:#C9BFB2; --c-plat:#A99A88; --c-print:#6F6357; --c-port:#8E8173;
+  --serif:"Source Serif 4", Georgia, "Times New Roman", serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:17px;line-height:1.55;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.wrap{max-width:1080px;margin:0 auto;padding:40px 24px 32px}
+header{max-width:720px;margin-bottom:36px}
+h1{font-size:clamp(30px,4.6vw,46px);line-height:1.08;font-weight:700;margin:0 0 14px;letter-spacing:-.01em}
+.lede{color:var(--taupe);margin:0;font-size:18px}
+.grid{display:grid;grid-template-columns:minmax(280px,340px) 1fr;gap:40px;align-items:start}
+@media (max-width:820px){.grid{grid-template-columns:1fr;gap:28px}}
+
+/* Saisie */
+form{background:var(--sheet);border:1px solid var(--line);border-radius:6px;padding:22px 22px 8px;position:sticky;top:16px}
+@media (max-width:820px){form{position:static}}
+fieldset{border:0;padding:0;margin:0 0 18px}
+legend{font-weight:700;font-size:18px;margin-bottom:10px;padding:0}
+.field{margin-bottom:14px}
+label{display:block;font-size:15px;margin-bottom:4px}
+.hint{display:block;color:var(--taupe);font-size:13.5px;line-height:1.4;margin-top:3px}
+input,select{width:100%;font:inherit;font-size:16px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:4px;padding:8px 10px;font-variant-numeric:tabular-nums}
+input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+.unit{position:relative}
+.unit input{padding-right:34px}
+.unit span{position:absolute;right:11px;top:50%;transform:translateY(-50%);color:var(--taupe);font-size:15px;pointer-events:none}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.error{color:var(--loss);font-size:14px;margin:4px 0 0}
+
+/* Résultats */
+.results h2{font-size:24px;margin:0 0 6px}
+.results .sub{color:var(--taupe);margin:0 0 22px;font-size:15.5px}
+.plat{border-top:2px solid var(--ink);padding-top:16px;margin-bottom:34px}
+.plat-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.plat-head h3{margin:0;font-size:22px}
+.plat-head .fixed{color:var(--taupe);font-size:15px}
+.circuit{display:grid;grid-template-columns:150px 1fr 96px;gap:14px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+@media (max-width:560px){.circuit{grid-template-columns:1fr 84px}.circuit .bar{grid-column:1 / -1;order:3}}
+.cname{font-weight:600;font-size:16px;line-height:1.3}
+.cname small{display:block;font-weight:400;color:var(--taupe);font-size:13.5px}
+.amount{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;font-size:19px}
+.amount.neg{color:var(--loss)}
+.amount small{display:block;font-weight:400;font-size:12.5px;color:var(--taupe)}
+.bar{display:flex;height:26px;border-radius:3px;overflow:hidden;background:var(--line)}
+.bar span{display:block;height:100%;min-width:2px}
+.bar .auteur{background:var(--gain)}
+.bar .tva{background:var(--c-tva)}.bar .plateforme{background:var(--c-plat)}.bar .impression{background:var(--c-print)}.bar .port{background:var(--c-port)}.bar .libraire{background:#B8A991}
+.note{font-size:14px;color:var(--taupe);margin:8px 0 0}
+.warn{font-size:14px;color:var(--loss);margin:6px 0 0}
+.na{color:var(--taupe);font-style:italic;font-size:15px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13.5px;color:var(--taupe);margin:0 0 20px;padding:0;list-style:none}
+.legend li{display:flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:2px;display:inline-block}
+.total{display:grid;grid-template-columns:1fr auto;gap:4px 16px;background:var(--sheet);border:1px solid var(--line);border-radius:6px;padding:14px 16px;margin-top:14px;font-variant-numeric:tabular-nums}
+.total .big{font-size:22px;font-weight:700;text-align:right}
+.total .lab{font-size:15.5px}
+.pending{border-top:1px solid var(--ink);padding-top:14px;color:var(--taupe)}
+.pending h3{color:var(--ink);font-size:19px;margin:0 0 4px}
+footer{max-width:720px;margin-top:40px;padding-top:18px;border-top:1px solid var(--line);font-size:14px;color:var(--taupe)}
+footer p{margin:0 0 10px}
+footer a{color:var(--brass)}
+.copy{font-size:12.5px}
+@media (prefers-reduced-motion:no-preference){.bar span{transition:flex-grow .35s ease}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Combien vous rapporte vraiment votre livre&nbsp;?</h1>
+  <p class="lede">Indiquez les caractéristiques de votre livre et vos ventes prévues. Le simulateur calcule ce qui vous revient sur chaque exemplaire, selon la plateforme et le lieu de vente, et montre où part le reste du prix.</p>
+</header>
+
+<div class="grid">
+<form id="f" novalidate>
+  <fieldset>
+    <legend>Votre livre</legend>
+    <div class="field">
+      <label for="pages">Nombre de pages</label>
+      <input id="pages" type="number" inputmode="numeric" min="24" max="828" step="2" value="250">
+      <span class="hint">Pages du fichier imprimé, entre 24 et 828.</span>
+    </div>
+    <div class="field">
+      <label for="format">Format</label>
+      <select id="format">
+        <option value="13x20">13 × 20 cm (roman courant)</option>
+        <option value="148x21">14,8 × 21 cm</option>
+      </select>
+    </div>
+    <p class="hint" style="margin:-6px 0 14px">Impression noir et blanc, couverture souple.</p>
+  </fieldset>
+
+  <fieldset>
+    <legend>Vos prix publics</legend>
+    <div class="pair">
+      <div class="field">
+        <label for="prixPapier">Livre papier</label>
+        <div class="unit"><input id="prixPapier" type="number" inputmode="decimal" min="1" step="0.01" value="17"><span>€</span></div>
+      </div>
+      <div class="field">
+        <label for="prixEbook">Ebook</label>
+        <div class="unit"><input id="prixEbook" type="number" inputmode="decimal" min="0.99" step="0.01" value="6.99"><span>€</span></div>
+      </div>
+    </div>
+    <span class="hint" style="margin:-8px 0 14px">Prix TTC. En France, le prix que vous fixez s'impose à tous les vendeurs (loi Lang).</span>
+  </fieldset>
+
+  <fieldset>
+    <legend>Vos ventes prévues</legend>
+    <div class="pair">
+      <div class="field"><label for="vAmazon">Sur Amazon</label><input id="vAmazon" type="number" inputmode="numeric" min="0" step="1" value="60"></div>
+      <div class="field"><label for="vDirect">En direct</label><input id="vDirect" type="number" inputmode="numeric" min="0" step="1" value="40"></div>
+    </div>
+    <div class="pair">
+      <div class="field"><label for="vLibrairie">En librairie</label><input id="vLibrairie" type="number" inputmode="numeric" min="0" step="1" value="0"></div>
+      <div class="field"><label for="vEbook">Ebooks</label><input id="vEbook" type="number" inputmode="numeric" min="0" step="1" value="50"></div>
+    </div>
+    <span class="hint" style="margin:-8px 0 14px">« En direct » désigne les exemplaires que vous achetez puis revendez vous-même, en salon ou par votre site.</span>
+  </fieldset>
+
+  <fieldset>
+    <legend>Réglages fins</legend>
+    <div class="field">
+      <label for="port">Frais d'envoi de vos exemplaires</label>
+      <div class="unit"><input id="port" type="number" inputmode="decimal" min="0" step="0.05" value="1.5"><span>€</span></div>
+      <span class="hint">Par exemplaire, selon la taille de vos commandes. Estimation à ajuster.</span>
+    </div>
+    <div class="field">
+      <label for="poids">Poids du fichier ebook</label>
+      <div class="unit"><input id="poids" type="number" inputmode="decimal" min="0.1" step="0.1" value="1.5"><span>Mo</span></div>
+      <span class="hint">Un roman sans images pèse en général moins de 2 Mo.</span>
+    </div>
+  </fieldset>
+  <p class="error" id="err" role="alert" hidden></p>
+</form>
+
+<section class="results" aria-live="polite">
+  <h2>Ce qui vous revient par exemplaire</h2>
+  <p class="sub" id="resume"></p>
+  <ul class="legend" aria-hidden="true">
+    <li><i style="background:var(--gain)"></i>Pour vous</li>
+    <li><i style="background:var(--c-print)"></i>Impression</li>
+    <li><i style="background:var(--c-port)"></i>Envoi</li>
+    <li><i style="background:var(--c-plat)"></i>Plateforme ou vendeur</li>
+    <li><i style="background:#B8A991"></i>Libraire</li>
+    <li><i style="background:var(--c-tva)"></i>TVA</li>
+  </ul>
+  <div id="out"></div>
+</section>
+</div>
+
+<footer>
+  <p id="maj"></p>
+  <p>Simulation indicative, calculée à partir des barèmes publiés par les plateformes. Les gains sont exprimés avant impôts et cotisations sociales. Vérifiez toujours le calcul final sur le site de la plateforme avant de fixer votre prix.</p>
+  <p>Un livre rentable commence par un texte qui tient ses promesses. <a href="https://www.ecrivain-service.fr/diagnostic-de-manuscrit">Découvrir le diagnostic de manuscrit</a></p>
+  <p class="copy">© 2026 Louis-Xavier Babin-Lachaud — <a href="https://www.ecrivain-service.fr/">ecrivain-service.fr</a>. Partage autorisé tel quel, modification et usage commercial interdits sans accord.</p>
+</footer>
+</div>
+
+<script>
+/* =====================================================================
+   DONNÉES TARIFAIRES — à mettre à jour à chaque relevé (avril, octobre)
+   ===================================================================== */
+const RELEVE = "octobre 2026";
+const TVA_LIVRE = 0.055; // papier et numérique en France
+
+const KDP = {
+  nom: "Amazon KDP",
+  impression(pages){ return pages <= 110 ? 2.05 : 0.75 + 0.012 * pages; }, // Amazon.fr, N&B, format standard
+  tauxPapier(prixTTC){ return prixTTC >= 9.99 ? 0.60 : 0.50; },
+  ebook: { min70: 2.69, max70: 12.99, livraisonParMo: 0.12, ecartPapier: 0.20 }
+};
+
+const BOD = {
+  nom: "BoD",
+  fraisFixes: 39,                       // formule Publication, une seule fois
+  partAuteur: 0.55,                     // marge = 55 % du prix HT − déduction de fabrication
+  deduction(pages){ return 1.655 + 0.01303 * pages; },
+  exemplaireHT(pages){ return 1.21 + 0.0321 * pages; },   // 1 à 24 exemplaires, livraison en sus
+  bonusLibrairieBoD: 1.5,               // marge sur la librairie BoD = 1,5 × marge en librairie
+  ebook: 0.42,                          // part du prix HT (70 % des recettes nettes)
+  contrat: "Contrat exclusif d'un an, reconduit automatiquement sauf dénonciation trois mois avant l'échéance."
+};
+
+const TBE = {
+  nom: "TheBookEdition",
+  // coût de fabrication TTC d'un exemplaire, dos carré collé, N&B 80 g
+  fabrication: {
+    "13x20":  { fixe: 2.64, parPage: 0.01687, libelle: "12 × 18 cm, format le plus proche proposé" },
+    "148x21": { fixe: 2.90, parPage: 0.0211,  libelle: "14,8 × 21 cm" }
+  },
+  commission: 0.30,                     // libraires et diffusion, prise sur la marge
+  diffusionMois: 7.99,                  // service de diffusion (Amazon, Dilicom, Electre)
+  ebookFrais: 3.69,                     // frais fixe par ebook ; l'auteur touche le reste (service client, octobre 2026)
+  contrat: "Sans exclusivité ni engagement. Un livre diffusé sur Amazon par l'abonnement ne peut plus en être retiré."
+};
+
+const BOOKELIS = {
+  nom: "Bookelis",
+  fabrication: {                        // TTC, exemplaire auteur et base de la marge sur le site Bookelis
+    "13x20":  { fixe: 5.38,  parPage: 0.0157, libelle: "13 × 18 cm, format le plus proche proposé" },
+    "148x21": { fixe: 5.395, parPage: 0.0162, libelle: "14,8 × 21 cm" }
+  },
+  partHachette: 0.15,                   // marge en librairie = 15 % du prix HT
+  prixMin(pages){ return Math.ceil(Math.round((5.30 + 0.0407 * pages) * 1000) / 100) / 10; }, // relevé en 13 × 18
+  packHachette: 108,                    // première année, puis 69 € par an
+  ebookOptima: { frais: 29, part: 0.40 },
+  contrat: "Sans exclusivité. Distribution Hachette : 108 € la première année, puis 69 € par an, et commande obligatoire d'un exemplaire de contrôle."
+};
+
+const LIBRINOVA = {
+  nom: "Librinova",
+  formuleMin: 75,                       // formules de 75 € à 2 989 €
+  // prix publics imposés : prix de base selon les pages (relevé service client, octobre 2026), puis +1 €, +2 €, +3 €
+  prixBase(pages){
+    const pts = [[100,13.90],[300,19.90],[400,22.90]];
+    let b;
+    if (pages <= 300) b = 13.90 + (pages - 100) * (6.00 / 200);
+    else b = 19.90 + (pages - 300) * (3.00 / 100);
+    return Math.max(13.90, Math.ceil(b - 0.9) + 0.90);
+  },
+  marges: [1.00, 1.50, 2.00, 2.50],     // marge fixe de l'auteur pour chacun des quatre prix
+  exemplaireTTC(pages){ return 7.34 + 0.016867 * pages; },  // exemplaire d'auteur, tous formats
+  ebookAilleurs: 0.50,                  // part moyenne du prix HT sur les autres librairies en ligne
+  ebookSite: 0.70,                      // part du prix HT sur la librairie en ligne de Librinova
+  formats: { "13x20": "13 × 18 cm, format le plus proche proposé", "148x21": "14 × 21,6 cm, format le plus proche proposé" },
+  contrat: "Engagement d'un an, à renouveler. Les formules vont de 75 € à 2 989 € : la plus économique ne comprend pas forcément la diffusion papier, à vérifier sur le site."
+};
+
+/* Plateformes en cours de relevé */
+const EN_ATTENTE = [];
+
+/* ===================================================================== */
+
+const $ = id => document.getElementById(id);
+const euro = n => n.toLocaleString("fr-FR",{style:"currency",currency:"EUR"});
+const num = id => parseFloat(String($(id).value).replace(",", "."));
+const pos = n => Math.max(n, 0);
+
+function barre(parts, total){
+  return '<div class="bar" role="img" aria-label="' + parts.map(p => p.label + " " + euro(p.v)).join(", ") + '">' +
+    parts.filter(p => p.v > 0.004).map(p => '<span class="' + p.cls + '" style="flex-grow:' + (p.v / total).toFixed(4) + '"></span>').join("") + '</div>';
+}
+function ligne(nom, detail, gain, parts, total){
+  return '<div class="circuit"><div class="cname">' + nom + '<small>' + detail + '</small></div>' +
+    barre(parts, total) +
+    '<div class="amount' + (gain < 0 ? ' neg' : '') + '">' + euro(gain) + '<small>par exemplaire</small></div></div>';
+}
+function horsCircuit(nom, texte){
+  return '<div class="circuit"><div class="cname">' + nom + '<small>Hors circuit</small></div><div class="na">' + texte + '</div><div class="amount">–</div></div>';
+}
+function bloc(nom, frais, lignes, notes, total, nb, extra){
+  return '<article class="plat"><div class="plat-head"><h3>' + nom + '</h3><span class="fixed">' + frais + '</span></div>' +
+    lignes + notes + '<div class="total"><span class="lab">Pour ' + nb + ' ventes prévues, frais d\'entrée déduits</span><span class="big">' + euro(total) + '</span></div>' + (extra || '') + '</article>';
+}
+
+function calculer(){
+  const pages = Math.round(num("pages"));
+  const pP = num("prixPapier"), pE = num("prixEbook");
+  const v = { amazon:num("vAmazon")||0, direct:num("vDirect")||0, librairie:num("vLibrairie")||0, ebook:num("vEbook")||0 };
+  const port = num("port") || 0, poids = num("poids") || 0;
+
+  const err = $("err");
+  if (!(pages >= 24 && pages <= 828) || !(pP > 0) || !(pE > 0)){
+    err.hidden = false;
+    err.textContent = !(pages >= 24 && pages <= 828) ? "Le nombre de pages doit être compris entre 24 et 828." : "Indiquez un prix public pour le livre papier et pour l'ebook.";
+    return;
+  }
+  err.hidden = true;
+  $("resume").textContent = pages + " pages, livre papier à " + euro(pP) + ", ebook à " + euro(pE) + ".";
+
+  const htP = pP / (1 + TVA_LIVRE), tvaP = pP - htP;
+  const htE = pE / (1 + TVA_LIVRE), tvaE = pE - htE;
+  let html = "";
+
+  /* ---------- Amazon KDP ---------- */
+  {
+    const imp = KDP.impression(pages), taux = KDP.tauxPapier(pP);
+    const gA = taux * htP - imp;
+    const coutEx = imp + port, gD = pP - coutEx;
+    const e = KDP.ebook;
+    const ok70 = pE >= e.min70 && pE <= e.max70 && pE <= pP * (1 - e.ecartPapier);
+    const tE = ok70 ? 0.70 : 0.35, liv = ok70 ? e.livraisonParMo * poids : 0;
+    const gE = tE * (htE - liv);
+    let L = "";
+    L += ligne("Sur Amazon", "Redevance de " + Math.round(taux*100) + " %", gA,
+      [{cls:"auteur",v:pos(gA),label:"pour vous"},{cls:"impression",v:imp,label:"impression"},{cls:"plateforme",v:htP*(1-taux),label:"Amazon"},{cls:"tva",v:tvaP,label:"TVA"}], pP);
+    L += horsCircuit("En librairie", "KDP ne distribue pas les livres dans les librairies françaises.");
+    L += ligne("En direct", "Exemplaire acheté " + euro(coutEx) + ", envoi compris", gD,
+      [{cls:"auteur",v:pos(gD),label:"pour vous"},{cls:"impression",v:imp,label:"impression"},{cls:"port",v:port,label:"envoi"}], Math.max(pP, coutEx));
+    L += ligne("Ebook", "Redevance de " + Math.round(tE*100) + " %" + (ok70 ? ", frais de livraison déduits" : ""), gE,
+      [{cls:"auteur",v:pos(gE),label:"pour vous"},{cls:"plateforme",v:htE-gE,label:"Amazon et livraison"},{cls:"tva",v:tvaE,label:"TVA"}], pE);
+    let N = "";
+    const prixMin = imp / taux;
+    if (pP < prixMin) N += '<p class="warn">Prix trop bas : KDP impose au moins ' + euro(Math.ceil(prixMin*100)/100) + ' pour ce livre.</p>';
+    if (taux === 0.50) N += '<p class="note">Sous 9,99 €, Amazon applique 50 % au lieu de 60 %.</p>';
+    if (!ok70){
+      const r = pE > e.max70 ? "au-dessus de " + euro(e.max70) : pE < e.min70 ? "sous " + euro(e.min70) : "moins de 20 % sous le prix du papier";
+      N += '<p class="note">Ebook à 35 % : prix ' + r + '. Le taux de 70 % s\'applique entre ' + euro(e.min70) + ' et ' + euro(e.max70) + ', avec un prix inférieur d\'au moins 20 % à celui du papier.</p>';
+    }
+    if (gD < 0) N += '<p class="warn">En direct, vous perdez de l\'argent sur chaque exemplaire à ce prix.</p>';
+    const total = v.amazon*gA + v.direct*gD + v.ebook*gE;
+    const extra = v.librairie > 0 ? '<p class="note">Vos ' + v.librairie + ' ventes en librairie ne sont pas possibles avec KDP seul et ne sont pas comptées.</p>' : '';
+    html += bloc(KDP.nom, "Aucun frais d'entrée", L, N, total, v.amazon + v.direct + v.ebook, extra);
+  }
+
+  /* ---------- BoD ---------- */
+  {
+    const B = BOD, ded = B.deduction(pages);
+    const gL = B.partAuteur * htP - ded;                 // librairies, Amazon, Fnac…
+    const exTTC = B.exemplaireHT(pages) * (1 + TVA_LIVRE);
+    const coutEx = exTTC + port, gD = pP - coutEx;
+    const gE = B.ebook * htE;
+    const revendeur = htP * (1 - B.partAuteur);
+    let L = "";
+    const partsL = [{cls:"auteur",v:pos(gL),label:"pour vous"},{cls:"impression",v:ded,label:"fabrication"},{cls:"libraire",v:revendeur,label:"revendeur et distribution"},{cls:"tva",v:tvaP,label:"TVA"}];
+    L += ligne("Sur Amazon", "Marge BoD, identique sur tous les sites", gL, partsL, pP);
+    L += ligne("En librairie", "Commande via le réseau des libraires", gL, partsL, pP);
+    L += ligne("En direct", "Exemplaire acheté " + euro(coutEx) + ", envoi compris", gD,
+      [{cls:"auteur",v:pos(gD),label:"pour vous"},{cls:"impression",v:exTTC,label:"exemplaire"},{cls:"port",v:port,label:"envoi"}], Math.max(pP, coutEx));
+    L += ligne("Ebook", "70 % des recettes nettes", gE,
+      [{cls:"auteur",v:pos(gE),label:"pour vous"},{cls:"plateforme",v:htE-gE,label:"revendeur et BoD"},{cls:"tva",v:tvaE,label:"TVA"}], pE);
+    let N = "";
+    if (gL < 0) N += '<p class="warn">Prix trop bas : avec ce nombre de pages, BoD ne vous verserait aucune marge. Il faut au moins ' + euro(Math.ceil(ded / B.partAuteur * (1 + TVA_LIVRE) * 100)/100) + '.</p>';
+    if (gL > 0) N += '<p class="note">Vendu sur le site de BoD, le livre vous rapporte ' + euro(gL * B.bonusLibrairieBoD) + ' par exemplaire.</p>';
+    N += '<p class="note">Vos propres exemplaires coûtent plus cher que la fabrication déduite de votre marge : ' + euro(exTTC) + ' contre ' + euro(ded) + '. Tarif dégressif à partir de 25 exemplaires.</p>';
+    N += '<p class="note">' + B.contrat + '</p>';
+    if (gD < 0) N += '<p class="warn">En direct, vous perdez de l\'argent sur chaque exemplaire à ce prix.</p>';
+    const total = (v.amazon + v.librairie)*gL + v.direct*gD + v.ebook*gE - B.fraisFixes;
+    html += bloc(B.nom, euro(B.fraisFixes) + " une seule fois (formule Publication)", L, N, total, v.amazon + v.librairie + v.direct + v.ebook);
+  }
+
+  /* ---------- TheBookEdition ---------- */
+  {
+    const T = TBE, fmt = T.fabrication[$("format").value] || T.fabrication["13x20"];
+    const fab = fmt.fixe + fmt.parPage * pages;          // TTC
+    const marge = pP - fab;                               // règle publiée : prix = fabrication + marge
+    const com = T.commission * pP;
+    const gL = marge - com;
+    const okLib = marge >= com;                           // marge d'au moins 30 % du prix
+    const gD = pP - fab - port;
+    let L = "";
+    const partsL = [{cls:"auteur",v:pos(gL),label:"pour vous"},{cls:"impression",v:fab,label:"fabrication"},{cls:"libraire",v:com,label:"commission"}];
+    if (okLib){
+      L += ligne("Sur Amazon", "Commission de 30 %, abonnement de diffusion requis", gL, partsL, pP);
+      L += ligne("En librairie", "Commission de 30 % prise sur votre marge", gL, partsL, pP);
+    } else {
+      L += horsCircuit("Sur Amazon", "Marge inférieure à 30 % du prix : diffusion impossible.");
+      L += horsCircuit("En librairie", "Marge inférieure à 30 % du prix : vente aux libraires impossible.");
+    }
+    L += ligne("En direct", "Exemplaire acheté " + euro(fab + port) + ", envoi compris", gD,
+      [{cls:"auteur",v:pos(gD),label:"pour vous"},{cls:"impression",v:fab,label:"exemplaire"},{cls:"port",v:port,label:"envoi"}], Math.max(pP, fab + port));
+    const gE = pE - T.ebookFrais;
+    if (gE > 0) L += ligne("Ebook", "Vendu uniquement sur le site de TheBookEdition, frais fixe de " + euro(T.ebookFrais), gE,
+      [{cls:"auteur",v:gE,label:"pour vous"},{cls:"plateforme",v:T.ebookFrais,label:"frais TheBookEdition"}], pE);
+    else L += horsCircuit("Ebook", "Prix inférieur au frais fixe de " + euro(T.ebookFrais) + " : vente impossible.");
+    let N = "";
+    if (marge < 0) N += '<p class="warn">Prix inférieur au coût de fabrication (' + euro(fab) + ').</p>';
+    else if (marge > 0 && marge < 1) N += '<p class="warn">TheBookEdition refuse les marges comprises entre 0 et 1 €.</p>';
+    else N += '<p class="note">Vendu sur le site de TheBookEdition, le livre vous rapporte ' + euro(marge) + ' par exemplaire.</p>';
+    if (!okLib && marge >= 0) N += '<p class="note">Pour vendre en librairie, fixez un prix d\'au moins ' + euro(Math.ceil(fab / (1 - T.commission) * 100)/100) + '.</p>';
+    N += '<p class="note">Format de calcul : ' + fmt.libelle + '. Remises sur la quantité pour vos propres exemplaires.</p>';
+    const abo = v.amazon > 0 ? T.diffusionMois * 12 : 0;
+    if (v.amazon > 0) N += '<p class="note">La vente sur Amazon passe par l\'abonnement de diffusion : ' + euro(T.diffusionMois) + ' par mois, compté ici sur un an.</p>';
+    N += '<p class="note">' + T.contrat + '</p>';
+    if (gD < 0) N += '<p class="warn">En direct, vous perdez de l\'argent sur chaque exemplaire à ce prix.</p>';
+    const venteLib = okLib ? (v.amazon + v.librairie) : 0;
+    const total = venteLib * gL + v.direct * gD + v.ebook * pos(gE) - abo;
+    N += '<p class="note">L\'ebook n\'est vendu que sur le site de TheBookEdition : il n\'est diffusé ni sur Amazon ni en librairie.</p>';
+    html += bloc(T.nom, "Publication gratuite", L, N, total, venteLib + v.direct + (gE > 0 ? v.ebook : 0));
+  }
+
+  /* ---------- Bookelis ---------- */
+  {
+    const K = BOOKELIS, fmt = K.fabrication[$("format").value] || K.fabrication["13x20"];
+    const fab = fmt.fixe + fmt.parPage * pages;
+    const min = K.prixMin(pages);
+    const okH = pP >= min;
+    const gH = K.partHachette * htP;
+    const gSite = htP - fab;
+    const gD = pP - fab - port;
+    const gE = K.ebookOptima.part * htE;
+    let L = "";
+    const partsH = [{cls:"auteur",v:gH,label:"pour vous"},{cls:"libraire",v:htP-gH,label:"fabrication, distribution et libraire"},{cls:"tva",v:tvaP,label:"TVA"}];
+    if (okH){
+      L += ligne("Sur Amazon", "15 % du prix HT, par la distribution Hachette", gH, partsH, pP);
+      L += ligne("En librairie", "15 % du prix HT, par la distribution Hachette", gH, partsH, pP);
+    } else {
+      L += horsCircuit("Sur Amazon", "Prix inférieur au minimum imposé par la distribution Hachette.");
+      L += horsCircuit("En librairie", "Prix inférieur au minimum imposé par la distribution Hachette.");
+    }
+    L += ligne("En direct", "Exemplaire acheté " + euro(fab + port) + ", envoi compris", gD,
+      [{cls:"auteur",v:pos(gD),label:"pour vous"},{cls:"impression",v:fab,label:"exemplaire"},{cls:"port",v:port,label:"envoi"}], Math.max(pP, fab + port));
+    L += ligne("Ebook", "40 % du prix HT, option de distribution à 29 €", gE,
+      [{cls:"auteur",v:gE,label:"pour vous"},{cls:"plateforme",v:htE-gE,label:"revendeurs et Bookelis"},{cls:"tva",v:tvaE,label:"TVA"}], pE);
+    let N = "";
+    if (!okH) N += '<p class="warn">Avec ce nombre de pages, la distribution Hachette impose un prix d\'au moins ' + euro(min) + '.</p>';
+    if (gSite > 0) N += '<p class="note">Vendu sur le site de Bookelis, le livre vous rapporte ' + euro(gSite) + ' par exemplaire.</p>';
+    N += '<p class="note">Format de calcul : ' + fmt.libelle + '. Remises sur la quantité pour vos propres exemplaires dès 5 exemplaires.</p>';
+    N += '<p class="note">' + K.contrat + '</p>';
+    if (gD < 0) N += '<p class="warn">En direct, vous perdez de l\'argent sur chaque exemplaire à ce prix.</p>';
+    const venteH = okH ? (v.amazon + v.librairie) : 0;
+    const frais = (venteH > 0 ? K.packHachette : 0) + (v.ebook > 0 ? K.ebookOptima.frais : 0);
+    const fraisTxt = "Publication gratuite, distribution payante";
+    const total = venteH * gH + v.direct * gD + v.ebook * gE - frais;
+    html += bloc(K.nom, fraisTxt, L, N, total, venteH + v.direct + v.ebook);
+  }
+
+  /* ---------- Librinova ---------- */
+  {
+    const R = LIBRINOVA;
+    const base = R.prixBase(pages);
+    const prix = [0,1,2,3].map(k => Math.round((base + k) * 100) / 100);
+    let k = -1;
+    for (let i = 0; i < 4; i++) if (pP >= prix[i] - 0.001) k = i;
+    let L = "";
+    let gP = 0, prixRetenu = 0, gD = 0;
+    if (k >= 0){
+      gP = R.marges[k]; prixRetenu = prix[k];
+      const htR = prixRetenu / (1 + TVA_LIVRE);
+      const partsR = [{cls:"auteur",v:gP,label:"pour vous"},{cls:"libraire",v:htR-gP,label:"fabrication, Librinova et libraire"},{cls:"tva",v:prixRetenu-htR,label:"TVA"}];
+      L += ligne("Sur Amazon", "Marge fixe pour un prix de " + euro(prixRetenu), gP, partsR, prixRetenu);
+      L += ligne("En librairie", "Marge fixe pour un prix de " + euro(prixRetenu), gP, partsR, prixRetenu);
+      const ex = R.exemplaireTTC(pages);
+      gD = prixRetenu - ex - port;
+      L += ligne("En direct", "Exemplaire acheté " + euro(ex + port) + ", envoi compris", gD,
+        [{cls:"auteur",v:pos(gD),label:"pour vous"},{cls:"impression",v:ex,label:"exemplaire"},{cls:"port",v:port,label:"envoi"}], Math.max(prixRetenu, ex + port));
+    } else {
+      L += horsCircuit("Sur Amazon", "Prix inférieur au plus bas des quatre prix imposés.");
+      L += horsCircuit("En librairie", "Prix inférieur au plus bas des quatre prix imposés.");
+      L += horsCircuit("En direct", "Prix inférieur au plus bas des quatre prix imposés.");
+    }
+    const gE = R.ebookAilleurs * htE;
+    L += ligne("Ebook", "50 % du prix HT en moyenne sur les librairies en ligne", gE,
+      [{cls:"auteur",v:gE,label:"pour vous"},{cls:"plateforme",v:htE-gE,label:"revendeurs et Librinova"},{cls:"tva",v:tvaE,label:"TVA"}], pE);
+    let N = "";
+    if ([100,300,400].indexOf(pages) < 0) N += '<p class="note">Librinova a communiqué ses prix pour 100, 300 et 400 pages : pour ' + pages + ' pages, ils sont estimés à partir de ces trois relevés.</p>';
+    N += '<p class="note">Prix imposés pour ' + pages + ' pages : ' + prix.map(euro).join(", ") + ', avec une marge de 1 € à 2,50 € selon le prix choisi.</p>';
+    if (k >= 0 && Math.abs(prixRetenu - pP) > 0.009) N += '<p class="warn">Votre prix ne fait pas partie des quatre prix imposés : le calcul retient ' + euro(prixRetenu) + ', le prix proposé immédiatement inférieur.</p>';
+    if (k < 0) N += '<p class="warn">Avec ce nombre de pages, le prix le plus bas proposé est ' + euro(prix[0]) + '.</p>';
+    N += '<p class="note">Ebook vendu sur la librairie en ligne de Librinova : 70 % du prix HT, soit ' + euro(R.ebookSite * htE) + ' par exemplaire.</p>';
+    N += '<p class="note">Format de calcul : ' + (R.formats[$("format").value] || R.formats["13x20"]) + '. Le prix de l\'exemplaire ne dépend pas du format.</p>';
+    N += '<p class="note">' + R.contrat + '</p>';
+    if (k >= 0 && gD < 0) N += '<p class="warn">En direct, vous perdez de l\'argent sur chaque exemplaire à ce prix.</p>';
+    const venteP = k >= 0 ? (v.amazon + v.librairie) : 0, venteD = k >= 0 ? v.direct : 0;
+    const total = venteP * gP + venteD * gD + v.ebook * gE - R.formuleMin;
+    html += bloc(R.nom, "Formule payante, dès 75 €", L, N, total, venteP + venteD + v.ebook);
+  }
+
+  /* ---------- Plateformes en cours de relevé ---------- */
+  if (EN_ATTENTE.length) html += '<div class="pending"><h3>' + EN_ATTENTE.join(", ").replace(/, ([^,]*)$/, " et $1") + '</h3><p>' + (EN_ATTENTE.length > 1 ? 'Leurs' : 'Ses') + ' tarifs sont en cours de vérification et seront ajoutés au simulateur lors de la prochaine mise à jour.</p></div>';
+
+  $("out").innerHTML = html;
+}
+
+$("maj").textContent = "Tarifs relevés en " + RELEVE + " et mis à jour deux fois par an.";
+$("f").addEventListener("input", calculer);
+$("f").addEventListener("submit", e => e.preventDefault());
+calculer();
+</script>
+</body>
+</html>
