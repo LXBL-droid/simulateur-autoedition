@@ -240,6 +240,24 @@ const LIBRINOVA = {
   contrat: "Engagement d'un an, à renouveler. Les formules vont de 75 € à 2 989 € : la plus économique ne comprend pas forcément la diffusion papier, à vérifier sur le site."
 };
 
+const PUBLISHROOM = {
+  nom: "Publishroom",
+  formule: 350,                         // formule Distri+ Print (papier seul), TTC, une seule fois (devis d'octobre 2026)
+  formuleEbook: 450,                    // formule Distri+ Ebook Print (papier et ebook), TTC
+  ebook: 0.40,                          // part du prix HT de l'ebook, diffusé par Primento
+  depotLegal: 4,                        // exemplaires du dépôt légal à acheter à la souscription
+  partAuteur: 0.60,                     // 60 % du prix HT sur Amazon, Fnac, Cultura, Decitre et en librairie
+  // impression HT relevée sur devis (14,8 × 21 cm, bouffant 80 g), interpolée entre les relevés
+  impressionHT(pages){
+    const pts = [[100,3.49],[200,4.64],[300,5.78],[400,6.93]];
+    let i = pages <= 200 ? 0 : pages <= 300 ? 1 : 2;
+    const [x0,y0] = pts[i], [x1,y1] = pts[i+1];
+    return y0 + (pages - x0) * (y1 - y0) / (x1 - x0);
+  },
+  portHT(pages){ return pages >= 280 ? 3.00 : 2.50; },     // selon le poids (seuil de 500 g), 280 pages en 14,8 × 21 cm
+  contrat: "La formule Distri+ Print comprend l'ISBN, le dépôt légal et la distribution du livre papier sur Amazon, Fnac, Cultura, Decitre et en librairie. Publishroom indique ne prendre aucune commission sur les ventes."
+};
+
 /* Plateformes en cours de relevé */
 const EN_ATTENTE = [];
 
@@ -458,6 +476,45 @@ function calculer(){
     const venteP = k >= 0 ? (v.amazon + v.librairie) : 0, venteD = k >= 0 ? v.direct : 0;
     const total = venteP * gP + venteD * gD + v.ebook * gE - R.formuleMin;
     html += bloc(R.nom, "Formule payante, dès 75 €", L, N, total, venteP + venteD + v.ebook);
+  }
+
+  /* ---------- Publishroom ---------- */
+  {
+    const P = PUBLISHROOM;
+    const imp = P.impressionHT(pages), portV = P.portHT(pages);
+    const gL = P.partAuteur * htP - imp - portV;
+    const gSite = htP - imp - portV;
+    const exTTC = imp * (1 + TVA_LIVRE);
+    const gD = pP - exTTC - port;
+    const ok = gL > 0;
+    let L = "";
+    const partsL = [{cls:"auteur",v:pos(gL),label:"pour vous"},{cls:"impression",v:imp,label:"impression"},{cls:"port",v:portV,label:"participation au port"},{cls:"libraire",v:htP*(1-P.partAuteur),label:"revendeur et distribution"},{cls:"tva",v:tvaP,label:"TVA"}];
+    if (ok){
+      L += ligne("Sur Amazon", "60 % du prix HT, moins impression et port", gL, partsL, pP);
+      L += ligne("En librairie", "60 % du prix HT, moins impression et port", gL, partsL, pP);
+    } else {
+      L += horsCircuit("Sur Amazon", "Prix trop bas pour couvrir l'impression et le port.");
+      L += horsCircuit("En librairie", "Prix trop bas pour couvrir l'impression et le port.");
+    }
+    L += ligne("En direct", "Exemplaire acheté " + euro(exTTC + port) + ", envoi compris", gD,
+      [{cls:"auteur",v:pos(gD),label:"pour vous"},{cls:"impression",v:exTTC,label:"exemplaire"},{cls:"port",v:port,label:"envoi"}], Math.max(pP, exTTC + port));
+    const avecEbook = v.ebook > 0;
+    const gE = P.ebook * htE;
+    L += ligne("Ebook", "40 % du prix HT, formule Distri+ Ebook Print", gE,
+      [{cls:"auteur",v:gE,label:"pour vous"},{cls:"plateforme",v:htE-gE,label:"Primento et revendeurs"},{cls:"tva",v:tvaE,label:"TVA"}], pE);
+    let N = "";
+    if (!ok) N += '<p class="warn">Avec ce nombre de pages, il faut un prix d\'au moins ' + euro(Math.ceil((imp + portV) / P.partAuteur * (1 + TVA_LIVRE) * 100) / 100) + ' pour toucher une marge.</p>';
+    if (gSite > 0) N += '<p class="note">Vendu sur le site de Publishroom, le livre vous rapporte ' + euro(gSite) + ' par exemplaire.</p>';
+    N += '<p class="note">Participation au port de ' + euro(portV) + ' HT par exemplaire vendu, déduite de votre marge. Elle dépend du poids du livre et passe de 2,50 € à 3 € autour de 500 g, soit vers 280 pages au format 14,8 × 21 cm.</p>';
+    const formule = avecEbook ? P.formuleEbook : P.formule;
+    N += '<p class="note">Frais d\'entrée : formule ' + (avecEbook ? 'Distri+ Ebook Print' : 'Distri+ Print') + ' à ' + euro(formule) + ', plus l\'achat des ' + P.depotLegal + ' exemplaires du dépôt légal (' + euro(P.depotLegal * exTTC) + '). ' + (avecEbook ? 'Sans ebook, la formule Distri+ Print coûte ' + euro(P.formule) + '.' : 'Pour diffuser aussi l\'ebook, la formule Distri+ Ebook Print coûte ' + euro(P.formuleEbook) + '.') + '</p>';
+    if ($("format").value !== "148x21") N += '<p class="note">Format de calcul : 14,8 × 21 cm, seul format relevé à ce jour.</p>';
+    N += '<p class="note">' + P.contrat + '</p>';
+    if (gD < 0) N += '<p class="warn">En direct, vous perdez de l\'argent sur chaque exemplaire à ce prix.</p>';
+    const venteL = ok ? (v.amazon + v.librairie) : 0;
+    const frais = formule + P.depotLegal * exTTC;
+    const total = venteL * gL + v.direct * gD + v.ebook * gE - frais;
+    html += bloc(P.nom, "Formule payante, " + euro(formule), L, N, total, venteL + v.direct + v.ebook);
   }
 
   /* ---------- Plateformes en cours de relevé ---------- */
