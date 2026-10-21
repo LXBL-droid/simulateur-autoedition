@@ -500,11 +500,12 @@ function calculer(){
       [{cls:"auteur",v:pos(gD),label:"pour vous"},{cls:"impression",v:exTTC,label:"exemplaire"},{cls:"port",v:port,label:"envoi"}], Math.max(pP, exTTC + port));
     const avecEbook = v.ebook > 0;
     const gE = P.ebook * htE;
-    L += ligne("Ebook", "40 % du prix HT, formule Distri+ Ebook Print", gE,
+    L += ligne("Ebook", "40 % du prix HT sur les librairies en ligne, formule Distri+ Ebook Print", gE,
       [{cls:"auteur",v:gE,label:"pour vous"},{cls:"plateforme",v:htE-gE,label:"Primento et revendeurs"},{cls:"tva",v:tvaE,label:"TVA"}], pE);
     let N = "";
     if (!ok) N += '<p class="warn">Avec ce nombre de pages, il faut un prix d\'au moins ' + euro(Math.ceil((imp + portV) / P.partAuteur * (1 + TVA_LIVRE) * 100) / 100) + ' pour toucher une marge.</p>';
     if (gSite > 0) N += '<p class="note">Vendu sur le site de Publishroom, le livre vous rapporte ' + euro(gSite) + ' par exemplaire.</p>';
+    N += '<p class="note">Ebook vendu sur le site de Publishroom : 100 % du prix HT, soit ' + euro(htE) + ' par exemplaire.</p>';
     N += '<p class="note">Participation au port de ' + euro(portV) + ' HT par exemplaire vendu, déduite de votre marge. Elle dépend du poids du livre et passe de 2,50 € à 3 € autour de 500 g, soit vers 280 pages au format 14,8 × 21 cm.</p>';
     const formule = avecEbook ? P.formuleEbook : P.formule;
     N += '<p class="note">Frais d\'entrée : formule ' + (avecEbook ? 'Distri+ Ebook Print' : 'Distri+ Print') + ' à ' + euro(formule) + ', plus l\'achat des ' + P.depotLegal + ' exemplaires du dépôt légal (' + euro(P.depotLegal * exTTC) + '). ' + (avecEbook ? 'Sans ebook, la formule Distri+ Print coûte ' + euro(P.formule) + '.' : 'Pour diffuser aussi l\'ebook, la formule Distri+ Ebook Print coûte ' + euro(P.formuleEbook) + '.') + '</p>';
